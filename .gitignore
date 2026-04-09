@@ -1,0 +1,17 @@
+# Python environments and caches
+venv/
+__pycache__/
+*.pyc
+
+# AI Models (Too large for GitHub)
+kokoro_model/
+vosk_model/
+piper_model/
+
+# Temporary files generated during runtime
+temp/
+*.wav
+
+# System files
+.env
+.DS_Store
