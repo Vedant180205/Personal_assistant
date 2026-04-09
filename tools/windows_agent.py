@@ -28,7 +28,8 @@ DANGEROUS_KEYWORDS = [
 
 def execute_powershell(command: str, safety_bypassed: bool = False):
     """
-    Executes raw PowerShell commands. If the command modifies or deletes system settings/files,
+    Executes raw PowerShell commands in a VISIBLE window.
+    If the command modifies or deletes system settings/files,
     it returns a confirmation request instead of executing.
     """
     cmd_lower = command.lower()
@@ -44,21 +45,18 @@ def execute_powershell(command: str, safety_bypassed: bool = False):
                     f"Is it correct what you thought? Reply with yes for final confirmation.'"
                 )
                 
-    # 2. The Execution (Runs if safe, or if you said 'Yes')
+    # 2. The VISIBLE Execution
     try:
-        result = subprocess.run(
-            ["powershell", "-Command", command], 
-            capture_output=True, 
-            text=True, 
-            timeout=15
-        )
+        print(f"[*] Launching visible PowerShell for command: {command}")
         
-        if result.returncode == 0:
-            return f"Execution successful. Output: {result.stdout.strip()}"
-        else:
-            return f"Execution failed. Error: {result.stderr.strip()}"
-            
-    except subprocess.TimeoutExpired:
-        return "Command timed out after 15 seconds."
+        # 'start powershell' forces a new, visible window to open on your desktop.
+        # '-NoExit' prevents the window from closing immediately so you can read the output or errors.
+        ps_command = f'start powershell -NoExit -Command "{command}"'
+        
+        subprocess.run(ps_command, shell=True)
+        
+        # We tell the AI the window was opened successfully.
+        return f"PowerShell window opened and executed: {command}"
+        
     except Exception as e:
         return f"System error executing command: {str(e)}"

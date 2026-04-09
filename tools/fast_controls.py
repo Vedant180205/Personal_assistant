@@ -9,13 +9,31 @@ import screen_brightness_control as sbc
 from ctypes import cast, POINTER
 from comtypes import CLSCTX_ALL
 from pycaw.pycaw import AudioUtilities, IAudioEndpointVolume
+import webbrowser
+import urllib.parse
+import re
+
+def _extract_number(data, default=50):
+    """Nuclear option: Scans the AI's input and extracts only the numbers."""
+    try:
+        # Convert whatever dictionary/string/garbage the AI sent into a raw string
+        raw_string = str(data)
+        # Find the first sequence of digits in the string
+        match = re.search(r'\d+', raw_string)
+        if match:
+            return int(match.group())
+        return default
+    except Exception:
+        return default
 
 # --- 1. AUDIO & MEDIA ---
 
-def set_volume(level: int):
+def set_volume(level):
     """Sets master volume to a specific percentage (0-100)."""
     try:
+        level = _extract_number(level)
         level = max(0, min(100, level))
+        
         devices = AudioUtilities.GetSpeakers()
         interface = devices.Activate(IAudioEndpointVolume._iid_, CLSCTX_ALL, None)
         volume = cast(interface, POINTER(IAudioEndpointVolume))
@@ -53,14 +71,40 @@ def media_previous():
 
 # --- 2. DISPLAY ---
 
-def set_brightness(level: int):
+def set_brightness(level):
     """Sets the main display brightness (0-100)."""
     try:
+        level = _extract_number(level)
         level = max(0, min(100, level))
+        
         sbc.set_brightness(level)
         return f"Screen brightness set to {level}%."
     except Exception as e:
         return f"Failed to set brightness: {e}"
+
+# --- NEW WEB TOOL ---
+
+def open_browser(query: str):
+    """Opens the default web browser to a URL or performs a Google search."""
+    try:
+        # If the AI passed a direct dictionary by accident, extract the string
+        if isinstance(query, dict):
+            query = query.get('query', query.get('value', str(query)))
+            
+        query = str(query).strip()
+        
+        # If it looks like a web address, open it directly
+        if query.startswith("http") or "www." in query:
+            webbrowser.open(query)
+            return f"Successfully opened browser to: {query}"
+        
+        # Otherwise, treat it as a Google search
+        safe_query = urllib.parse.quote_plus(query)
+        search_url = f"https://www.google.com/search?q={safe_query}"
+        webbrowser.open(search_url)
+        return f"Successfully opened browser and searched Google for: '{query}'"
+    except Exception as e:
+        return f"Failed to open browser: {e}"
 
 # --- 3. SYSTEM STATE & SECURITY ---
 
